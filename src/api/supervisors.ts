@@ -1,8 +1,9 @@
 import axios from "."; // your preconfigured axios instance
 
 // ----------------- Projects & Excels -----------------
-export const getSupervisorProjects = async (supId: string) => {
-    const { data } = await axios.get(`/supervisor/projects/${supId}`);
+export const getSupervisorProjects = async () => {
+    const { data } = await axios.get(`/supervisor/projects`);
+    console.log('supervisor projects', data);
     return data;
 };
 
@@ -78,6 +79,11 @@ export const updateRow = async (sheetId: string, rowNumber: number, rowData: Rec
 
 export const updateCell = async (sheetId: string, rowNumber: number, key: string, value: any) => {
     const { data } = await axios.patch(`/supervisor/sheet/${sheetId}/rows/${rowNumber}`, { key, value });
+    return data;
+};
+
+export const getSupervisorReports = async () => {
+    const { data } = await axios.get(`/supervisor/table-view/`);
     return data;
 };
 

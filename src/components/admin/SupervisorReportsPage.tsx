@@ -1,4 +1,4 @@
-import { getReport } from '@/api/admin';
+import { getSupervisorReports } from '@/api/supervisors';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useSession } from '@/lib/auth';
 import {
   ArrowUpDown,
   BarChart3,
@@ -32,8 +33,9 @@ interface DynamicColumn {
   visible: boolean;
 }
 
-const ReportsPage: React.FC = () => {
+const SupervisorReportsPage: React.FC = () => {
   // Data state
+  const { session } = useSession()
   const [reportData, setReportData] = useState<any[]>([]);
   const [columns, setColumns] = useState<DynamicColumn[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,7 +85,7 @@ const ReportsPage: React.FC = () => {
       setLoading(true);
       setError(null);
       const query = buildReportQuery();
-      const data = await getReport(query);
+      const data = await getSupervisorReports();
 
       if (!data || data.length === 0) {
         setReportData([]);
@@ -119,63 +121,46 @@ const ReportsPage: React.FC = () => {
   const transformBackendData = (data: any[]): any[] => {
     const rows: any[] = [];
 
-    data.forEach((companyItem: any) => {
-      if (!companyItem) return;
+    data.forEach(companyItem => {
+      const companyName = companyItem.company;
+      const projectName = companyItem.supervisorProjects;
 
-      const companyName = companyItem.company || '';
-      const projects = companyItem.project || [];
-      const sheets = companyItem.sheets || [];
+      (companyItem.excels || []).forEach((excel: any) => {
+        const excelName = excel.excelName;
 
-      // Process sheets with their rows
-      sheets.forEach((sheet: any) => {
-        const sheetName = sheet.sheetName || '';
-        const sheetRows = sheet.sheetRows || [];
+        (excel.sheets || []).forEach((sheet: any) => {
+          const sheetName = sheet.sheetName;
 
-        // Get excel name if available
-        const excelName = companyItem.excel || '';
+          // Əgər sheet-də row varsa → hər biri ayrıca row olur
+          if (sheet.sheetRows && sheet.sheetRows.length > 0) {
+            sheet.sheetRows.forEach((row: any) => {
+              rows.push({
+                company: companyName,
+                project: projectName,
+                excel: excelName,
+                sheetName,
 
-        // Get first project name (can be enhanced if needed)
-        const projectName = projects.length > 0 ? projects[0].name || '' : '';
-        const supervisors = projects.length > 0 && projects[0].supervisors
-          ? projects[0].supervisors.map((s: any) => `${s.name} ${s.surname}`).join(', ')
-          : '';
-
-        // Create a row for each sheet row
-        sheetRows.forEach((rowData: any) => {
-          const flatRow: any = {
-            company: companyName,
-            project: projectName,
-            supervisor: supervisors,
-            excel: excelName,
-            sheetName: sheetName,
-          };
-
-          // Add all dynamic fields from sheet row
-          if (typeof rowData === 'object' && rowData !== null) {
-            Object.keys(rowData).forEach(key => {
-              const value = rowData[key];
-              flatRow[key] = value !== null && value !== undefined ? String(value) : '';
+                // dynamic data
+                ...row,
+              });
             });
           }
-
-          rows.push(flatRow);
+          // sheet boşdursa belə meta-data göstərilsin
+          else {
+            rows.push({
+              company: companyName,
+              project: projectName,
+              excel: excelName,
+              sheetName,
+            });
+          }
         });
       });
-
-      // If no sheets, still add company info
-      if (sheets.length === 0 && projects.length > 0) {
-        rows.push({
-          company: companyName,
-          project: projects[0].name || '',
-          supervisor: projects[0].supervisors ? projects[0].supervisors.map((s: any) => `${s.name} ${s.surname}`).join(', ') : '',
-          excel: companyItem.excel || '',
-          sheetName: '',
-        });
-      }
     });
 
     return rows;
   };
+
 
   // Detect columns from data
   const detectColumns = (data: any[]): DynamicColumn[] => {
@@ -755,4 +740,4 @@ const ReportsPage: React.FC = () => {
   );
 };
 
-export default ReportsPage;
+export default SupervisorReportsPage;

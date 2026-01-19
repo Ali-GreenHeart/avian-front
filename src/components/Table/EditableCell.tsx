@@ -1,15 +1,19 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Input } from "../ui/input";
-import { cn } from "@/lib/utils";
+import { cn, formatDateForEditableCell, fromDateInputValue, toDateInputValue } from "@/lib/utils";
+import { ISheetColumn } from "@/types/types";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
 interface EditableCellProps {
     value: any;
     editable?: boolean;
+    colDef: ISheetColumn;
     onSave: (value: any) => void;
 }
 
 export const EditableCell: React.FC<EditableCellProps> = ({
     value,
+    colDef,
     editable = true,
     onSave,
 }) => {
@@ -39,6 +43,98 @@ export const EditableCell: React.FC<EditableCellProps> = ({
         );
     }
 
+    if (colDef.type === "select") {
+        return (
+            <div
+                className={cn(
+                    "relative px-2 py-1 text-sm",
+                    "min-h-[28px] flex items-center",
+                    "cursor-text rounded",
+                    !isEditing && "hover:bg-muted/50"
+                )}
+                onClick={() => !isEditing && setIsEditing(true)}
+            >
+                <Select
+                    value={localValue}
+                    onValueChange={(val) => {
+                        setLocalValue(val);
+                    }}
+                    onOpenChange={(open) => {
+                        if (!open) {
+                            handleSave()
+                        }
+                    }}
+                >
+                    <SelectTrigger className="w-full h-8 px-1 py-0 text-sm border-none bg-background">
+                        <SelectValue placeholder="Seçin" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {colDef.options?.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value}>
+                                {opt.label}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+        );
+    }
+
+    if (colDef.type === "date") {
+        return (
+            <div
+                className={cn(
+                    "relative px-2 py-1 text-sm",
+                    "min-h-[28px] flex items-center",
+                    "cursor-text rounded",
+                    !isEditing && "hover:bg-muted/50"
+                )}
+                onClick={() => {
+                    if (!isEditing) {
+                        setLocalValue(toDateInputValue(value));
+                        setIsEditing(true);
+                    }
+                }}
+            >
+                {isEditing ? (
+                    <Input
+                        ref={inputRef}
+                        type="date"
+                        value={localValue}
+                        onChange={(e) => setLocalValue(e.target.value)}
+                        onBlur={() => {
+                            setIsEditing(false);
+                            const parsed = fromDateInputValue(localValue);
+                            if (parsed) onSave(parsed);
+                        }}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                                const parsed = fromDateInputValue(localValue);
+                                if (parsed) onSave(parsed);
+                                setIsEditing(false);
+                            }
+                        }}
+                        className="
+                        h-6
+                        px-1
+                        py-0
+                        text-sm
+                        border-none
+                        rounded
+                        focus-visible:ring-1
+                        focus-visible:ring-ring
+                        focus-visible:ring-offset-0
+                        bg-background
+                    "
+                    />
+                ) : (
+                    <span className="px-1">
+                        {formatDateForEditableCell(value) || "-"}
+                    </span>
+                )}
+            </div>
+        );
+    }
     return (
         <div
             className={cn(

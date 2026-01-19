@@ -1,4 +1,4 @@
-import { IChannel, ICompany, IProject, IUser, mokko, Roles } from "@/types/types";
+import { IChannel, ICompany, IProject, IUser, Roles } from "@/types/types";
 import axios from "."
 
 // company
@@ -101,11 +101,19 @@ export const updateProject = async (projectId, data: any) => {
     return d.data.project
 }
 export const addProjectMember = async (projectId, userId, type) => {
-    const d = await axios.patch(`/admin/add-project-members/${projectId}/${userId}/${type}`)
+    const d = await axios.post(`/admin/add-project-members`, {
+        projectId,
+        userId,
+        type,
+    })
     return d.data.project
 }
 export const removeProjectMember = async (projectId, userId, type) => {
-    const d = await axios.delete(`/admin/remove-project-members/${projectId}/${userId}/${type}`)
+    const d = await axios.patch(`/admin/remove-project-members`, {
+        projectId,
+        userId,
+        type
+    })
     return d.data.project
 }
 
@@ -116,7 +124,14 @@ export const deleteProject = async (projectId) => {
 
 // report
 
-export const getReport = async () => {
-    const res = await axios.get(`/admin/all-report`)
+export const getReport = async (query?: string) => {
+    const res = await axios.get(`/admin/all-report${query ? `?query=${encodeURIComponent(query)}` : ""}`)
+    return res.data;
+}
+
+
+// logs
+export const getAllLogs = async (query?: string) => {
+    const res = await axios.get(`/admin/all-logs${query ? `?query=${encodeURIComponent(query)}` : ""}`)
     return res.data;
 }

@@ -1,17 +1,12 @@
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useChat } from '@/contexts/ChatContext';
 import { ICompany } from '@/types/types';
 import {
     ArrowLeft,
-    Folder,
-    Radio,
-    Users
+    Folder
 } from 'lucide-react';
 import React from 'react';
-import ChannelsTabs from './ChannelsTab';
 import ProjectsTab from './ProjectsTab';
-import UsersTab from './UsersTab';
 
 interface CompanyDetailProps {
     company: ICompany;
@@ -21,8 +16,6 @@ interface CompanyDetailProps {
 // Mock projects data
 
 const CompanyDetail: React.FC<CompanyDetailProps> = ({ company, onBack }) => {
-
-
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -37,12 +30,12 @@ const CompanyDetail: React.FC<CompanyDetailProps> = ({ company, onBack }) => {
             </div>
 
             {/* Tabs - Only Channels and Users */}
-            <Tabs defaultValue="channels" className="w-full">
+            <Tabs defaultValue="projects" className="w-full">
                 <TabsList className="mb-6">
-                    <TabsTrigger value="channels" className="gap-2">
+                    {/* <TabsTrigger value="channels" className="gap-2">
                         <Radio className="w-4 h-4" />
                         Kanallar
-                    </TabsTrigger>
+                    </TabsTrigger> */}
                     {/* <TabsTrigger value="users" className="gap-2">
                         <Users className="w-4 h-4" />
                         İstifadəçilər
@@ -54,9 +47,9 @@ const CompanyDetail: React.FC<CompanyDetailProps> = ({ company, onBack }) => {
                 </TabsList>
 
                 {/* Channels Tab */}
-                <TabsContent value="channels">
+                {/* <TabsContent value="channels">
                     <ChannelsTabs companyId={company._id} />
-                </TabsContent>
+                </TabsContent> */}
 
                 {/* Users Tab */}
                 {/* <TabsContent value="users">
@@ -65,7 +58,7 @@ const CompanyDetail: React.FC<CompanyDetailProps> = ({ company, onBack }) => {
 
                 {/* Projects Tab - Updated with proper project cards */}
                 <TabsContent value="projects">
-                    <ProjectsTab companyId={company._id} />
+                    <ProjectsTab />
                 </TabsContent>
             </Tabs>
         </div>

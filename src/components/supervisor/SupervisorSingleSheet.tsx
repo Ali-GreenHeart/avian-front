@@ -68,9 +68,10 @@ const SupervisorSingleSheet: React.FC = () => {
         try {
             await updateCell(sheetId, rowIndex, key, value);
             setRows(prev => {
-                const updated = [...prev];
-                updated[rowIndex][key] = value;
-                return updated;
+                return prev.map((r) => {
+                    if (r.rowNumber === rowIndex) return { ...r, data: { ...r.data, [key]: value } };
+                    return r;
+                })
             });
         } catch (e) {
             toast.error("Cell yenilənərkən xəta baş verdi");
@@ -118,7 +119,7 @@ const SupervisorSingleSheet: React.FC = () => {
                     <thead>
                         <tr>
                             <th className="border p-1">#</th>
-                            {columns.sort((a, b) => b.order - a.order).map((c) => c.columnId).map(col => <th key={col?._id} className="border p-1">{col?.name}</th>)}
+                            {columns.sort((a, b) => a.order - b.order).map((c) => c.columnId).map(col => <th key={col?._id} className="border p-1">{col?.name}</th>)}
                             {/* <th className="border p-1">Əməliyyatlar</th> */}
                         </tr>
                     </thead>
@@ -129,7 +130,7 @@ const SupervisorSingleSheet: React.FC = () => {
                                     {row.rowNumber}
                                 </td>
                                 {columns
-                                    .sort((a, b) => b.order - a.order)
+                                    .sort((a, b) => a.order - b.order)
                                     .map((col) => {
                                         const colDef = col.columnId;
                                         if (!colDef) return null;
@@ -137,10 +138,11 @@ const SupervisorSingleSheet: React.FC = () => {
                                         return (
                                             <td key={colDef._id} className="border px-1 py-0">
                                                 <EditableCell
-                                                    value={row.data[colDef.name]}
+                                                    colDef={colDef}
+                                                    value={row.data[colDef.dataKey]}
                                                     editable={col.editable}
                                                     onSave={(val) =>
-                                                        handleUpdateCell(rowIndex, colDef.name, val)
+                                                        handleUpdateCell(row.rowNumber, colDef.dataKey, val)
                                                     }
                                                 />
                                             </td>

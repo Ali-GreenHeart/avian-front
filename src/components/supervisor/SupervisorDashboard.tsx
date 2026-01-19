@@ -4,16 +4,18 @@ import { getSupervisorAgents } from "@/api/users";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { useSession } from "@/lib/auth";
 import { IUser } from "@/types/types";
 import { motion } from "framer-motion";
 import { Mail, Wifi, WifiOff } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const SupervisorDashboard = () => {
+    const { session } = useSession()
     const [agents, setAgents] = useState<any[]>([]);
 
     useEffect(() => {
-        getSupervisorAgents("695bdaeff2405115af596e24").then(setAgents);
+        getSupervisorAgents(session.user._id).then(setAgents);
     }, []);
 
     return (
@@ -50,21 +52,21 @@ const SupervisorDashboard = () => {
                                     </div>
                                 </div>
 
-                                {agent.onlineStatus === "online" ? (
+                                {/* {agent.onlineStatus === "online" ? (
                                     <Wifi className="h-5 w-5 text-green-500" />
                                 ) : (
                                     <WifiOff className="h-5 w-5 text-muted-foreground" />
-                                )}
+                                )} */}
                             </CardHeader>
 
                             <CardContent className="flex flex-wrap gap-2">
                                 <Badge variant="outline" className="capitalize">{agent.status}</Badge>
                                 <Badge variant="outline">{agent.role}</Badge>
                                 <Badge variant="outline">Projects: {agent.projectIds.length}</Badge>
-                                <Badge variant="outline">Channels: {agent.channelIds.length}</Badge>
+                                {/* <Badge variant="outline">Channels: {agent.channelIds.length}</Badge>
                                 {agent.chatbotEnabled === false && (
                                     <Badge variant="destructive">Chatbot OFF</Badge>
-                                )}
+                                )} */}
                             </CardContent>
                         </Card>
                     </motion.div>
