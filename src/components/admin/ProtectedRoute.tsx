@@ -11,11 +11,11 @@ const ProtectedRoute = ({ allowedRoles }: Props) => {
     console.log('session', session)
 
     if (!session?.token) {
-        return <Navigate to="/user/login" replace />;
+        return <Navigate to="/" replace />;
     }
 
     if (!allowedRoles.includes(session?.user?.role as Roles)) {
-        return <Navigate to="/404" replace />;
+        return <Navigate to="/" replace />;
     }
 
     return <Outlet />;

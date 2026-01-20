@@ -1,113 +1,243 @@
 "use client";
-import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 import {
-    Card,
-    CardContent,
-} from "../ui/card";
-import { Button } from "../ui/button";
-import { Input } from "../ui/input";
-import { ScrollArea } from "../ui/scroll-area";
-import { Badge } from "../ui/badge";
-import {
-    getColumns, getRows, addRow, updateCell, deleteRow, importFromExcel
+    updateCell
 } from "@/api/supervisors";
+import { getColumnsBySheetId } from "@/api/users";
 import { SheetColumnForm, SheetRowForm } from "@/types/types";
+import { ArrowLeft, ChevronLeft, ChevronRight, RefreshCw, FileText } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { toast } from "sonner";
 import { EditableCell } from "../Table/EditableCell";
+import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
+import { Card, CardContent } from "../ui/card";
 
 
 const UserColumns: React.FC = () => {
     const { sheetId, sheetName } = useParams();
     const navigate = useNavigate();
 
+    // States
     const [columns, setColumns] = useState<SheetColumnForm[]>([]);
     const [rows, setRows] = useState<SheetRowForm[]>([]);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalRows, setTotalRows] = useState(0);
+    const [loading, setLoading] = useState(false)
+    const rowsPerPage = 50;
 
     useEffect(() => {
-        if (sheetId) fetchColumns();
-        if (sheetId) fetchRows();
+        if (sheetId) {
+            fetchData();
+            setCurrentPage(1);
+        }
     }, [sheetId]);
 
-    const fetchColumns = async () => {
+    useEffect(() => {
+        if (sheetId) fetchData();
+    }, [sheetId, currentPage]);
+
+    const fetchData = async () => {
         try {
-            const data = await getColumns(sheetId!);
-            setColumns(data);
+            const data = await getColumnsBySheetId(sheetId!, currentPage, rowsPerPage);
+            setColumns(data.columns);
+            setRows(data.rows)
         } catch (e) {
             toast.error("Sütunlar gətirilərkən xəta baş verdi");
-        }
-    };
-
-    const fetchRows = async () => {
-        try {
-            const data = await getRows(sheetId!, 1, 100);
-            setRows(data);
-        } catch (e) {
-            toast.error("Sətirlər gətirilərkən xəta baş verdi");
         }
     };
 
     const handleUpdateCell = async (rowIndex: number, key: string, value: any) => {
         if (!sheetId) return;
         try {
-            await updateCell(sheetId, rowIndex, key, value);
+            const _d = await updateCell(sheetId, rowIndex, key, value);
             setRows(prev => {
                 return prev.map((r) => {
                     if (r.rowNumber === rowIndex) return { ...r, data: { ...r.data, [key]: value } };
                     return r;
                 })
             });
+            toast.success(`"${key}" sütununa "${_d.data[key]}" əlavə edildi.`)
         } catch (e) {
             toast.error("Cell yenilənərkən xəta baş verdi");
         }
     };
 
+    const handleRefresh = () => {
+        fetchData();
+        toast.success("Vərilənlər yeniləndi");
+    };
+
+    const handleNextPage = () => {
+        if (rows.length === rowsPerPage) {
+            setCurrentPage(prev => prev + 1);
+        }
+    };
+
+    const handlePreviousPage = () => {
+        if (currentPage > 1) {
+            setCurrentPage(prev => prev - 1);
+        }
+    };
+
     return (
-        <div className="w-full px-10">
-            <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="mb-4">← Geri</Button>
-            <h2 className="text-2xl font-bold mb-6">{sheetName}</h2>
+        <div className="h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 flex flex-col overflow-hidden">
+            {/* Header Section */}
+            <div className="flex-shrink-0 mb-4">
+                <div className="flex items-center justify-between mb-4">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => navigate(-1)}
+                        className="hover:bg-slate-200 transition-colors"
+                    >
+                        <ArrowLeft className="w-4 h-4 mr-2" /> Geri
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleRefresh}
+                        className="hover:bg-blue-50 transition-colors"
+                    >
+                        <RefreshCw className="w-4 h-4 mr-2" /> Yenilə
+                    </Button>
+                </div>
 
-            <ScrollArea className="border rounded-lg p-2">
-                <table className="w-full table-auto border-collapse">
-                    <thead>
-                        <tr>
-                            <th className="border p-1">#</th>
-                            {columns.sort((a, b) => a.order - b.order).map((c) => c.columnId).map(col => <th key={col?._id} className="border p-1">{col?.name}</th>)}
-                            {/* <th className="border p-1">Əməliyyatlar</th> */}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {rows.map((row, rowIndex) => (
-                            <tr key={rowIndex} className="border-b hover:bg-muted/40">
-                                <td className="border px-1 py-0">
-                                    {row.rowNumber}
-                                </td>
-                                {columns
-                                    .sort((a, b) => a.order - b.order)
-                                    .map((col) => {
-                                        const colDef = col.columnId;
-                                        if (!colDef) return null;
+                <div className="mb-3">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                            <FileText className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                            <h1 className="text-2xl font-bold text-slate-900">{sheetName}</h1>
+                            <p className="text-slate-500 text-xs mt-0.5">Sütun məlumatlarını əlavə və redaktə edin</p>
+                        </div>
+                    </div>
+                    <div className="flex gap-3 text-xs text-slate-600">
+                        <span className="flex items-center gap-1 px-2 py-0.5 bg-slate-100 rounded">
+                            <span className="font-semibold">{rows.length}</span> Sətir
+                        </span>
+                        <span className="flex items-center gap-1 px-2 py-0.5 bg-slate-100 rounded">
+                            <span className="font-semibold">{columns.length}</span> Sütun
+                        </span>
+                    </div>
+                </div>
+            </div>
 
-                                        return (
-                                            <td key={colDef._id} className="border px-1 py-0">
-                                                <EditableCell
-                                                    colDef={colDef}
-                                                    value={row.data[colDef.dataKey]}
-                                                    editable={col.editable}
-                                                    onSave={(val) =>
-                                                        handleUpdateCell(row.rowNumber, colDef.dataKey, val)
-                                                    }
-                                                />
-                                            </td>
-                                        );
-                                    })}
-                            </tr>
-                        ))}
-                    </tbody>
+            <Card className="border-slate-200 shadow-lg overflow-hidden flex-1 flex flex-col mb-3">
+                <CardContent className="p-0">
+                    <div className="overflow-x-auto overflow-y-auto flex-1 w-full bg-white">
+                        <table className="w-full border-collapse">
+                            <thead className="sticky top-0 bg-gradient-to-r from-slate-900 to-slate-800 z-10">
+                                <tr>
+                                    <th className="px-4 py-3 text-left text-white font-semibold text-sm border-b-2 border-slate-700 min-w-[60px]">
+                                        #
+                                    </th>
+                                    {columns.sort((a, b) => a.order - b.order).map((c) => c.columnId).map((col) => (
+                                        <th
+                                            key={col?._id}
+                                            className="px-4 py-3 text-left text-white font-semibold text-sm border-b-2 border-slate-700 whitespace-nowrap min-w-[150px]"
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <span>{col?.name}</span>
+                                                <Badge variant="secondary" className="text-xs bg-slate-700 text-slate-200">
+                                                    {col?.type || "Text"}
+                                                </Badge>
+                                            </div>
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {rows.map((row, rowIndex) => (
+                                    <tr
+                                        key={rowIndex}
+                                        className="border-b border-slate-200 hover:bg-blue-50 transition-colors duration-150 group"
+                                    >
+                                        <td className="px-4 py-3 text-slate-600 font-medium text-sm bg-slate-50 group-hover:bg-blue-100 min-w-[60px]">
+                                            {row.rowNumber}
+                                        </td>
+                                        {columns
+                                            .sort((a, b) => a.order - b.order)
+                                            .map((col) => {
+                                                const colDef = col.columnId;
+                                                if (!colDef) return null;
 
-                </table>
-            </ScrollArea>
-        </div>
+                                                return (
+                                                    <td
+                                                        key={colDef._id}
+                                                        className="px-4 py-3 text-slate-700 text-sm border-r border-slate-100 hover:bg-blue-100 transition-colors min-w-[150px]"
+                                                    >
+                                                        <div className="max-h-20 overflow-auto">
+                                                            <EditableCell
+                                                                colDef={colDef}
+                                                                value={row.data[colDef.dataKey]}
+                                                                editable={col.editable}
+                                                                onSave={(val) =>
+                                                                    handleUpdateCell(row.rowNumber, colDef.dataKey, val)
+                                                                }
+                                                            />
+                                                        </div>
+                                                    </td>
+                                                );
+                                            })}
+                                    </tr>
+                                ))}
+                                {rows.length === 0 && (
+                                    <tr>
+                                        <td
+                                            colSpan={columns.length + 1}
+                                            className="px-4 py-8 text-center text-slate-500"
+                                        >
+                                            <p className="font-medium">Heç bir sətir tapılmadı</p>
+                                            <p className="text-sm">Excel faylı importlaymaqla başlayın</p>
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Footer Stats & Pagination */}
+            <div className="flex-shrink-0 max-h-[23%] overflow-y-auto">
+                {rows.length > 0 && (
+                    <div className="flex items-center justify-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handlePreviousPage}
+                            disabled={currentPage === 1}
+                            className="hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <ChevronLeft className="w-4 h-4 mr-1" /> Əvvəlki
+                        </Button>
+
+                        <div className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg">
+                            <span className="text-sm font-semibold text-slate-700">
+                                Səhifə <span className="text-blue-600">{currentPage}</span>
+                            </span>
+                            {rows.length === rowsPerPage && (
+                                <span className="text-xs text-slate-500">
+                                    ({(currentPage - 1) * rowsPerPage + 1}-{currentPage * rowsPerPage})
+                                </span>
+                            )}
+                        </div>
+
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleNextPage}
+                            disabled={rows.length < rowsPerPage}
+                            className="hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Sonraki <ChevronRight className="w-4 h-4 ml-1" />
+                        </Button>
+                    </div>
+                )}
+            </div>
+        </div >
     );
 };
 
